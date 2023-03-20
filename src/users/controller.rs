@@ -1,5 +1,5 @@
-use super::model::User;
 use super::service;
+use crate::models::user_model::User;
 use axum::{
     http::StatusCode,
     routing::{get, post},
@@ -24,7 +24,7 @@ async fn create_user(state: Extension<PgPool>) -> Result<Json<User>, StatusCode>
 
 fn real_route() -> Router {
     Router::new()
-        .route("/", get(get_all))
+        .route("/all", get(get_all))
         .route("/create", post(create_user))
 }
 

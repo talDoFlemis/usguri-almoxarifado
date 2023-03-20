@@ -1,6 +1,5 @@
-use crate::users::model::User;
+use crate::models::user_model::User;
 use anyhow::Result;
-use sqlx::PgPool;
 
 pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<User>> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
