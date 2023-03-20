@@ -25,6 +25,7 @@ anyhow = "1.0.70"
 dotenvy = "0.15.6"
 
 futures = "0.3.27"
+validator = { version = "0.16.0", features = ["derive"] }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
