@@ -7,7 +7,7 @@ use tower_http::trace::TraceLayer;
 
 mod controllers;
 mod models;
-mod users;
+mod services;
 
 pub async fn server(db: PgPool) -> Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));

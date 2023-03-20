@@ -1,5 +1,5 @@
 use crate::models::user_model::User;
-use crate::users::service;
+use crate::services::user_service;
 use axum::{
     http::StatusCode,
     routing::{get, post},
@@ -8,12 +8,12 @@ use axum::{
 use sqlx::PgPool;
 
 async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>, StatusCode> {
-    let users = service::get_all_users(&state.0).await.unwrap();
+    let users = user_service::get_all_users(&state.0).await.unwrap();
     Ok(Json(users))
 }
 
 async fn create_user(state: Extension<PgPool>) -> Result<Json<User>, StatusCode> {
-    let user = service::create_user(&state.0).await.unwrap();
+    let user = user_service::create_user(&state.0).await.unwrap();
     Ok(Json(user))
 }
 
