@@ -5,6 +5,7 @@ use axum::{routing::get, Extension, Router};
 use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 
+mod controllers;
 mod models;
 mod users;
 
@@ -23,5 +24,5 @@ pub async fn server(db: PgPool) -> Result<()> {
 }
 
 fn api_router() -> Router {
-    Router::new().merge(users::controller::route())
+    Router::new().merge(controllers::user_controller::route())
 }

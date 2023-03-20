@@ -1,5 +1,5 @@
-use super::service;
 use crate::models::user_model::User;
+use crate::users::service;
 use axum::{
     http::StatusCode,
     routing::{get, post},
