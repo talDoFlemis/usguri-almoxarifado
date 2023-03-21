@@ -1,4 +1,7 @@
-use crate::models::user_model::User;
+use crate::models::{
+    user_model::{CreateUserDTO, User},
+    ValidatedForm,
+};
 use crate::services::user_service;
 use axum::{
     http::StatusCode,
@@ -12,7 +15,11 @@ async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>, StatusCode
     Ok(Json(users))
 }
 
-async fn create_user(state: Extension<PgPool>) -> Result<Json<User>, StatusCode> {
+async fn create_user(
+    state: Extension<PgPool>,
+    ValidatedForm(data): ValidatedForm<CreateUserDTO>,
+) -> Result<Json<User>, StatusCode> {
+    dbg!(data);
     let user = user_service::create_user(&state.0).await.unwrap();
     Ok(Json(user))
 }
