@@ -1,4 +1,4 @@
-use crate::models::user_model::User;
+use crate::models::user_model::{CreateUserDTO, User};
 use anyhow::Result;
 
 pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<User>> {
@@ -8,13 +8,28 @@ pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<Use
     Ok(users)
 }
 
-pub async fn create_user(state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
-    let user = sqlx::query_as!(User, "INSERT INTO users (name) VALUES ('test') RETURNING *")
+pub async fn create_user(user: CreateUserDTO, state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
+    let user = sqlx::query_as!(
+        User,
+        "INSERT INTO users (name) VALUES ($1) RETURNING *",
+        user.name
+    )
+    .fetch_one(state)
+    .await?;
+    Ok(user)
+}
+
+pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
+    let user = sqlx::query_as!(User, "SELECT * from users WHERE id = $1", id)
         .fetch_one(state)
         .await?;
     Ok(user)
 }
 
-// pub async fn delete_user(state: &sqlx::Pool<sqlx::Postgres>) -> _ {
-//     let res = sqlx::query!("DELETE FROM users WHERE name = test").await;
-// }
+pub async fn delete_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<()> {
+    sqlx::query!("DELETE FROM users WHERE id = $1", id)
+        .execute(state)
+        .await?;
+
+    Ok(())
+}

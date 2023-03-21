@@ -1,11 +1,12 @@
-use crate::models::{
-    user_model::{CreateUserDTO, User},
-    ValidatedForm,
-};
 use crate::services::user_service;
+use crate::{
+    models::user_model::{CreateUserDTO, User},
+    validation::ValidatedRequest,
+};
 use axum::{
+    extract::Path,
     http::StatusCode,
-    routing::{get, post},
+    routing::{delete, get, post},
     Extension, Json, Router,
 };
 use sqlx::PgPool;
@@ -15,24 +16,33 @@ async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>, StatusCode
     Ok(Json(users))
 }
 
-async fn create_user(
-    state: Extension<PgPool>,
-    ValidatedForm(data): ValidatedForm<CreateUserDTO>,
-) -> Result<Json<User>, StatusCode> {
-    dbg!(data);
-    let user = user_service::create_user(&state.0).await.unwrap();
+async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<User>, StatusCode> {
+    let user = user_service::get_user(id, &state.0).await.unwrap();
     Ok(Json(user))
 }
 
-// async fn delete_user(state: Extension<PgPool>) -> Result<StatusCode, StatusCode> {
-//     let user = service::delete_user(&state.0).await.unwrap();
-//     Ok(StatusCode::OK)
-// }
+async fn create_user(
+    state: Extension<PgPool>,
+    ValidatedRequest(data): ValidatedRequest<CreateUserDTO>,
+) -> Result<Json<User>, StatusCode> {
+    let user = user_service::create_user(data, &state.0).await.unwrap();
+    Ok(Json(user))
+}
+
+async fn delete_user(
+    state: Extension<PgPool>,
+    Path(id): Path<i32>,
+) -> Result<StatusCode, StatusCode> {
+    user_service::delete_user(id, &state.0).await.unwrap();
+    Ok(StatusCode::OK)
+}
 
 fn real_route() -> Router {
     Router::new()
         .route("/all", get(get_all))
+        .route("/:id", get(get_user))
         .route("/create", post(create_user))
+        .route("/delete/:id", delete(delete_user))
 }
 
 pub fn route() -> Router {
