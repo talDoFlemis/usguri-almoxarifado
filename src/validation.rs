@@ -1,3 +1,4 @@
+use anyhow::Result;
 use axum::{
     async_trait,
     extract::{
@@ -9,8 +10,15 @@ use axum::{
     Form, Json,
 };
 use serde::de::DeserializeOwned;
+use serde_json::json;
 use thiserror::Error;
 use validator::Validate;
+
+#[derive(Debug)]
+pub struct FailRejection {
+    pub code: StatusCode,
+    pub message: String,
+}
 
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ValidatedRequest<T>(pub T);
@@ -26,7 +34,7 @@ where
     Json<T>: FromRequest<S, B, Rejection = JsonRejection>,
     B: Send + 'static,
 {
-    type Rejection = ServerError;
+    type Rejection = CustomError;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
         let Json(value) = Json::<T>::from_request(req, state).await?;
@@ -43,7 +51,7 @@ where
     Form<T>: FromRequest<S, B, Rejection = JsonRejection>,
     B: Send + 'static,
 {
-    type Rejection = ServerError;
+    type Rejection = CustomError;
 
     async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
         let Form(value) = Form::<T>::from_request(req, state).await?;
@@ -53,7 +61,16 @@ where
 }
 
 #[derive(Debug, Error)]
-pub enum ServerError {
+pub enum CustomError {
+    #[error("Authentication required")]
+    Unauthorized,
+
+    #[error("User may not perform that action")]
+    Forbidden,
+
+    #[error("Request path not found")]
+    NotFound,
+
     #[error(transparent)]
     ValidationError(#[from] validator::ValidationErrors),
 
@@ -63,25 +80,41 @@ pub enum ServerError {
     #[error(transparent)]
     AxumFormRejection(#[from] FormRejection),
 
-    #[error("an internal server error occurred")]
+    #[error("an database error occurred")]
     Sqlx(#[from] sqlx::Error),
 
     #[error("an internal server error occurred")]
     Anyhow(#[from] anyhow::Error),
 }
 
-impl IntoResponse for ServerError {
+impl CustomError {
+    fn status_code(&self) -> StatusCode {
+        match self {
+            Self::Unauthorized => StatusCode::UNAUTHORIZED,
+            Self::Forbidden => StatusCode::FORBIDDEN,
+            Self::NotFound => StatusCode::NOT_FOUND,
+            Self::ValidationError(_) | Self::AxumJsonRejection(_) | Self::AxumFormRejection(_) => {
+                StatusCode::UNPROCESSABLE_ENTITY
+            }
+            Self::Sqlx(_) | Self::Anyhow(_) => StatusCode::INTERNAL_SERVER_ERROR,
+        }
+    }
+}
+
+impl IntoResponse for CustomError {
     fn into_response(self) -> Response {
         match self {
-            ServerError::ValidationError(_) => {
+            CustomError::Sqlx(_) | CustomError::Anyhow(_) => (self.status_code(), self.to_string()),
+            CustomError::ValidationError(_) => {
                 let message = format!("Input validation error: [{}]", self).replace('\n', ", ");
                 (StatusCode::UNPROCESSABLE_ENTITY, message)
             }
-            ServerError::AxumJsonRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            ServerError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            ServerError::Sqlx(_) | ServerError::Anyhow(_) => {
-                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
-            }
+            CustomError::AxumJsonRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            CustomError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            CustomError::Unauthorized => todo!(),
+            CustomError::Forbidden => todo!(),
+            CustomError::NotFound => todo!(),
+            _ => (self.status_code(), String::from(b)),
         }
         .into_response()
     }
