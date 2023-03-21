@@ -1,4 +1,4 @@
-use crate::services::user_service;
+use crate::{models::user_model::UpdateUserDTO, services::user_service};
 use crate::{
     models::user_model::{CreateUserDTO, User},
     validation::ValidatedRequest,
@@ -6,7 +6,7 @@ use crate::{
 use axum::{
     extract::Path,
     http::StatusCode,
-    routing::{delete, get, post},
+    routing::{delete, get, patch, post},
     Extension, Json, Router,
 };
 use sqlx::PgPool;
@@ -29,6 +29,15 @@ async fn create_user(
     Ok(Json(user))
 }
 
+async fn update_user(
+    state: Extension<PgPool>,
+    Path(id): Path<i32>,
+    ValidatedRequest(data): ValidatedRequest<UpdateUserDTO>,
+) -> Result<Json<User>, StatusCode> {
+    let user = user_service::update_user(id, data, &state.0).await.unwrap();
+    Ok(Json(user))
+}
+
 async fn delete_user(
     state: Extension<PgPool>,
     Path(id): Path<i32>,
@@ -39,9 +48,11 @@ async fn delete_user(
 
 fn real_route() -> Router {
     Router::new()
+        .route("/", get(get_all))
         .route("/all", get(get_all))
         .route("/:id", get(get_user))
         .route("/create", post(create_user))
+        .route("/update/:id", patch(update_user))
         .route("/delete/:id", delete(delete_user))
 }
 
