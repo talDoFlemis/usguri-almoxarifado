@@ -62,6 +62,12 @@ pub enum ServerError {
 
     #[error(transparent)]
     AxumFormRejection(#[from] FormRejection),
+
+    #[error("an internal server error occurred")]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("an internal server error occurred")]
+    Anyhow(#[from] anyhow::Error),
 }
 
 impl IntoResponse for ServerError {
@@ -73,6 +79,9 @@ impl IntoResponse for ServerError {
             }
             ServerError::AxumJsonRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
             ServerError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
+            ServerError::Sqlx(_) | ServerError::Anyhow(_) => {
+                (StatusCode::INTERNAL_SERVER_ERROR, self.to_string())
+            }
         }
         .into_response()
     }

@@ -1,7 +1,7 @@
 use std::net::SocketAddr;
 
 use anyhow::Result;
-use axum::{routing::get, Extension, Router};
+use axum::{Extension, Router};
 use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
 
