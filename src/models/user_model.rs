@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct User {
@@ -6,7 +7,8 @@ pub struct User {
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct CreateUser {
+#[derive(Debug, Serialize, Deserialize, Validate)]
+pub struct CreateUserDTO {
+    #[validate(length(min = 1, message = "Can not be empty"))]
     pub name: String,
 }
