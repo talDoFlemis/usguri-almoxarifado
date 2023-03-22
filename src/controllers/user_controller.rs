@@ -1,9 +1,9 @@
-use crate::Result;
 use crate::{models::user_model::UpdateUserDTO, services::user_service};
 use crate::{
     models::user_model::{CreateUserDTO, User},
     validation::ValidatedRequest,
 };
+use crate::{validation::CustomError, Result};
 use axum::{
     extract::Path,
     http::StatusCode,
@@ -19,7 +19,10 @@ async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>> {
 
 async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<User>> {
     let user = user_service::get_user(id, &state.0).await?;
-    Ok(Json(user))
+    match user {
+        Some(user) => Ok(Json(user)),
+        None => Err(CustomError::NotFound),
+    }
 }
 
 async fn create_user(

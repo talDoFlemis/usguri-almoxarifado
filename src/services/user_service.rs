@@ -21,9 +21,9 @@ pub async fn create_user(user: CreateUserDTO, state: &sqlx::Pool<sqlx::Postgres>
     Ok(user)
 }
 
-pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
+pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<Option<User>> {
     let user = sqlx::query_as!(User, "SELECT * from users WHERE id = $1", id)
-        .fetch_one(state)
+        .fetch_optional(state)
         .await?;
     Ok(user)
 }

@@ -39,7 +39,7 @@ pub enum CustomError {
     #[error("User may not perform that action")]
     Forbidden,
 
-    #[error("Request path not found")]
+    #[error("Resource not found")]
     NotFound,
 
     #[error(transparent)]
