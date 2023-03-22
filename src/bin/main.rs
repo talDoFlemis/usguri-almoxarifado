@@ -21,6 +21,11 @@ async fn main() -> Result<()> {
         .await
         .context("could not connect to database_url")?;
 
+    sqlx::migrate!("./migrations")
+        .run(&db)
+        .await
+        .context("could not run migrations")?;
+
     server(db).await?;
 
     Ok(())
