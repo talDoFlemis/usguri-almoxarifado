@@ -16,7 +16,7 @@ async fn main() -> Result<()> {
 
     let db_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
     let db = PgPoolOptions::new()
-        .max_connections(50)
+        .max_connections(100)
         .connect(&db_url)
         .await
         .context("could not connect to database_url")?;

@@ -1,30 +1,18 @@
 use anyhow::Result;
 use axum::{
     async_trait,
-    extract::{
-        rejection::{FormRejection, JsonRejection},
-        FromRequest,
-    },
+    extract::{rejection::JsonRejection, FromRequest},
     http::{Request, StatusCode},
     response::{IntoResponse, Response},
-    Form, Json,
+    Json,
 };
 use serde::de::DeserializeOwned;
-use serde_json::json;
+use sqlx::error::DatabaseError;
 use thiserror::Error;
 use validator::Validate;
 
-#[derive(Debug)]
-pub struct FailRejection {
-    pub code: StatusCode,
-    pub message: String,
-}
-
 #[derive(Debug, Clone, Copy, Default)]
 pub struct ValidatedRequest<T>(pub T);
-
-#[derive(Debug, Clone, Copy, Default)]
-pub struct ValidatedForm<T>(pub T);
 
 #[async_trait]
 impl<T, S, B> FromRequest<S, B> for ValidatedRequest<T>
@@ -40,23 +28,6 @@ where
         let Json(value) = Json::<T>::from_request(req, state).await?;
         value.validate()?;
         Ok(ValidatedRequest(value))
-    }
-}
-
-#[async_trait]
-impl<T, S, B> FromRequest<S, B> for ValidatedForm<T>
-where
-    T: DeserializeOwned + Validate,
-    S: Send + Sync,
-    Form<T>: FromRequest<S, B, Rejection = JsonRejection>,
-    B: Send + 'static,
-{
-    type Rejection = CustomError;
-
-    async fn from_request(req: Request<B>, state: &S) -> Result<Self, Self::Rejection> {
-        let Form(value) = Form::<T>::from_request(req, state).await?;
-        value.validate()?;
-        Ok(ValidatedForm(value))
     }
 }
 
@@ -77,9 +48,6 @@ pub enum CustomError {
     #[error(transparent)]
     AxumJsonRejection(#[from] JsonRejection),
 
-    #[error(transparent)]
-    AxumFormRejection(#[from] FormRejection),
-
     #[error("an database error occurred")]
     Sqlx(#[from] sqlx::Error),
 
@@ -93,7 +61,7 @@ impl CustomError {
             Self::Unauthorized => StatusCode::UNAUTHORIZED,
             Self::Forbidden => StatusCode::FORBIDDEN,
             Self::NotFound => StatusCode::NOT_FOUND,
-            Self::ValidationError(_) | Self::AxumJsonRejection(_) | Self::AxumFormRejection(_) => {
+            Self::ValidationError(_) | Self::AxumJsonRejection(_) => {
                 StatusCode::UNPROCESSABLE_ENTITY
             }
             Self::Sqlx(_) | Self::Anyhow(_) => StatusCode::INTERNAL_SERVER_ERROR,
@@ -104,18 +72,42 @@ impl CustomError {
 impl IntoResponse for CustomError {
     fn into_response(self) -> Response {
         match self {
-            CustomError::Sqlx(_) | CustomError::Anyhow(_) => (self.status_code(), self.to_string()),
+            CustomError::Sqlx(_) | CustomError::Anyhow(_) => {
+                tracing::error!("{:?}", self);
+                (self.status_code(), "INTERNAL SERVER ERROR".to_string())
+            }
             CustomError::ValidationError(_) => {
                 let message = format!("Input validation error: [{}]", self).replace('\n', ", ");
-                (StatusCode::UNPROCESSABLE_ENTITY, message)
+                (self.status_code(), message)
             }
-            CustomError::AxumJsonRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            CustomError::AxumFormRejection(_) => (StatusCode::BAD_REQUEST, self.to_string()),
-            CustomError::Unauthorized => todo!(),
-            CustomError::Forbidden => todo!(),
-            CustomError::NotFound => todo!(),
-            _ => (self.status_code(), String::from(b)),
+            _ => (self.status_code(), self.to_string()),
         }
         .into_response()
+    }
+}
+
+pub trait ResultExt<T> {
+    fn on_constraint(
+        self,
+        name: &str,
+        f: impl FnOnce(Box<dyn DatabaseError>) -> CustomError,
+    ) -> Result<T, CustomError>;
+}
+
+impl<T, E> ResultExt<T> for Result<T, E>
+where
+    E: Into<CustomError>,
+{
+    fn on_constraint(
+        self,
+        name: &str,
+        map_err: impl FnOnce(Box<dyn DatabaseError>) -> CustomError,
+    ) -> Result<T, CustomError> {
+        self.map_err(|e| match e.into() {
+            CustomError::Sqlx(sqlx::Error::Database(dbe)) if dbe.constraint() == Some(name) => {
+                map_err(dbe)
+            }
+            e => e,
+        })
     }
 }

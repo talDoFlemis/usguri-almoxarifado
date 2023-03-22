@@ -1,3 +1,4 @@
+use crate::Result;
 use crate::{models::user_model::UpdateUserDTO, services::user_service};
 use crate::{
     models::user_model::{CreateUserDTO, User},
@@ -11,21 +12,21 @@ use axum::{
 };
 use sqlx::PgPool;
 
-async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>, StatusCode> {
-    let users = user_service::get_all_users(&state.0).await.unwrap();
+async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>> {
+    let users = user_service::get_all_users(&state.0).await?;
     Ok(Json(users))
 }
 
-async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<User>, StatusCode> {
-    let user = user_service::get_user(id, &state.0).await.unwrap();
+async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<User>> {
+    let user = user_service::get_user(id, &state.0).await?;
     Ok(Json(user))
 }
 
 async fn create_user(
     state: Extension<PgPool>,
     ValidatedRequest(data): ValidatedRequest<CreateUserDTO>,
-) -> Result<Json<User>, StatusCode> {
-    let user = user_service::create_user(data, &state.0).await.unwrap();
+) -> Result<Json<User>> {
+    let user = user_service::create_user(data, &state.0).await?;
     Ok(Json(user))
 }
 
@@ -33,16 +34,13 @@ async fn update_user(
     state: Extension<PgPool>,
     Path(id): Path<i32>,
     ValidatedRequest(data): ValidatedRequest<UpdateUserDTO>,
-) -> Result<Json<User>, StatusCode> {
-    let user = user_service::update_user(id, data, &state.0).await.unwrap();
+) -> Result<Json<User>> {
+    let user = user_service::update_user(id, data, &state.0).await?;
     Ok(Json(user))
 }
 
-async fn delete_user(
-    state: Extension<PgPool>,
-    Path(id): Path<i32>,
-) -> Result<StatusCode, StatusCode> {
-    user_service::delete_user(id, &state.0).await.unwrap();
+async fn delete_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<StatusCode> {
+    user_service::delete_user(id, &state.0).await?;
     Ok(StatusCode::OK)
 }
 

@@ -1,16 +1,19 @@
 use std::net::SocketAddr;
 
-use anyhow::Result;
 use axum::{Extension, Router};
 use sqlx::PgPool;
 use tower_http::trace::TraceLayer;
+
+use crate::validation::CustomError;
 
 mod controllers;
 mod models;
 mod services;
 mod validation;
 
-pub async fn server(db: PgPool) -> Result<()> {
+pub type Result<T, E = CustomError> = std::result::Result<T, E>;
+
+pub async fn server(db: PgPool) -> anyhow::Result<()> {
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let app = api_router()
         .layer(TraceLayer::new_for_http())
