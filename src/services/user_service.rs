@@ -11,8 +11,10 @@ pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<Use
 pub async fn create_user(user: CreateUserDTO, state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
     let user = sqlx::query_as!(
         User,
-        "INSERT INTO users (name) VALUES ($1) RETURNING *",
-        user.name
+        "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *",
+        user.name,
+        user.email,
+        user.password
     )
     .fetch_one(state)
     .await?;
@@ -33,9 +35,10 @@ pub async fn update_user(
 ) -> Result<User> {
     let user = sqlx::query_as!(
         User,
-        "UPDATE users SET name = $1 WHERE id = $2 RETURNING *",
+        "UPDATE users SET name = $2, email = $3 WHERE id = $1 RETURNING *",
+        id,
         data.name,
-        id
+        data.password,
     )
     .fetch_one(state)
     .await?;
