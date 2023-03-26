@@ -6,6 +6,7 @@ use tower_http::trace::TraceLayer;
 
 use crate::validation::CustomError;
 
+mod authorization;
 mod controllers;
 mod models;
 mod services;
