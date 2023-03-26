@@ -1,5 +1,12 @@
-use crate::models::user_model::{CreateUserDTO, UpdateUserDTO, User};
-use anyhow::Result;
+use crate::{
+    models::user_model::{CreateUserDTO, UpdateUserDTO, User},
+    validation::ResultExt,
+};
+use crate::{validation::CustomError, Result};
+use anyhow::Context;
+use argon2::{password_hash::SaltString, PasswordHasher, PasswordVerifier};
+use argon2::{Argon2, PasswordHash};
+use chrono::DateTime;
 
 pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<User>> {
     let users = sqlx::query_as!(User, "SELECT * FROM users")
@@ -51,4 +58,30 @@ pub async fn delete_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<
         .await?;
 
     Ok(())
+}
+async fn hash_password(password: String) -> Result<String> {
+    Ok(tokio::task::spawn_blocking(move || -> Result<String> {
+        let salt = SaltString::generate(rand::thread_rng());
+        Ok(Argon2::default()
+            .hash_password(password.as_bytes(), &salt)
+            .map_err(|e| anyhow::anyhow!("Could not hash password: {}", e))?
+            .to_string())
+    })
+    .await
+    .context("Panic in generating password hash")??)
+}
+
+async fn verify_password(password: String, hash: String) -> Result<()> {
+    Ok(tokio::task::spawn_blocking(move || -> Result<()> {
+        let parsed_hash = PasswordHash::new(&hash)
+            .map_err(|e| anyhow::anyhow!("Could not parse password hash: {}", e))?;
+        Ok(Argon2::default()
+            .verify_password(password.as_bytes(), &parsed_hash)
+            .map_err(|e| match e {
+                argon2::password_hash::Error::Password => CustomError::Unauthorized,
+                _ => anyhow::anyhow!("Could not verify password: {}", e).into(),
+            })?)
+    })
+    .await
+    .context("Panic in verifying password")??)
 }
