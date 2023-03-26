@@ -10,7 +10,6 @@ edition = "2021"
 axum = { version = "0.6.11", features = ["ws", "tower-log", "json"] }
 tokio = { version = "1.26.0", features = ["full"] }
 sqlx = { version = "0.6.2", features = ["runtime-tokio-native-tls", "chrono", "postgres" ] }
-clap = { version = "4.1.13", features = ["derive"] }
 
 chrono = { version = "0.4.24", features = ["serde"] }
 
@@ -31,6 +30,7 @@ validator = { version = "0.16.0", features = ["derive"] }
 argon2 = "0.5.0"
 rand = "0.8.5"
 jsonwebtoken = "8.3.0"
+clap = { version = "4.1.13", features = ["derive", "env"] }
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3

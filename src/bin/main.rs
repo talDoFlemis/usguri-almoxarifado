@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
+use clap::Parser;
 use sqlx::postgres::PgPoolOptions;
 use tracing_subscriber::{prelude::__tracing_subscriber_SubscriberExt, util::SubscriberInitExt};
-use usguri_almoxarifado::server;
+use usguri_almoxarifado::{config::Config, server};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -14,10 +15,11 @@ async fn main() -> Result<()> {
         .with(tracing_subscriber::fmt::layer())
         .init();
 
-    let db_url = std::env::var("DATABASE_URL").context("DATABASE_URL not set")?;
+    let config = Config::parse();
+
     let db = PgPoolOptions::new()
         .max_connections(100)
-        .connect(&db_url)
+        .connect(&config.database_url)
         .await
         .context("could not connect to database_url")?;
 
@@ -26,7 +28,7 @@ async fn main() -> Result<()> {
     //     .await
     //     .context("could not run migrations")?;
 
-    server(db).await?;
+    server(db, config).await?;
 
     Ok(())
 }

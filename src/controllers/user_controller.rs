@@ -1,6 +1,7 @@
 use crate::{
     models::user_model::{CreateUserDTO, UserEntity},
     validation::ValidatedRequest,
+    AppState,
 };
 use crate::{
     models::user_model::{ProfileEntity, UpdateUserDTO},
@@ -13,15 +14,14 @@ use axum::{
     routing::{delete, get, patch, post},
     Extension, Json, Router,
 };
-use sqlx::PgPool;
 
-async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<UserEntity>>> {
-    let users = user_service::get_all_users(&state.0).await?;
+async fn get_all(state: Extension<AppState>) -> Result<Json<Vec<UserEntity>>> {
+    let users = user_service::get_all_users(&state.db).await?;
     Ok(Json(users))
 }
 
-async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<UserEntity>> {
-    let user = user_service::get_user(id, &state.0).await?;
+async fn get_user(state: Extension<AppState>, Path(id): Path<i32>) -> Result<Json<UserEntity>> {
+    let user = user_service::get_user(id, &state.db).await?;
     match user {
         Some(user) => Ok(Json(user)),
         None => Err(CustomError::NotFound),
@@ -29,24 +29,24 @@ async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<
 }
 
 async fn create_user(
-    state: Extension<PgPool>,
+    state: Extension<AppState>,
     ValidatedRequest(data): ValidatedRequest<CreateUserDTO>,
 ) -> Result<Json<ProfileEntity>> {
-    let user = user_service::create_user(data, &state.0).await?;
+    let user = user_service::create_user(data, &state.db).await?;
     Ok(Json(user))
 }
 
 async fn update_user(
-    state: Extension<PgPool>,
+    state: Extension<AppState>,
     Path(id): Path<i32>,
     ValidatedRequest(data): ValidatedRequest<UpdateUserDTO>,
 ) -> Result<Json<UserEntity>> {
-    let user = user_service::update_user(id, data, &state.0).await?;
+    let user = user_service::update_user(id, data, &state.db).await?;
     Ok(Json(user))
 }
 
-async fn delete_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<StatusCode> {
-    user_service::delete_user(id, &state.0).await?;
+async fn delete_user(state: Extension<AppState>, Path(id): Path<i32>) -> Result<StatusCode> {
+    user_service::delete_user(id, &state.db).await?;
     Ok(StatusCode::OK)
 }
 
