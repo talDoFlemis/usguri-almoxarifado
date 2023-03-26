@@ -7,7 +7,6 @@ use axum::{
     Json,
 };
 use serde::de::DeserializeOwned;
-use sqlx::error::DatabaseError;
 use thiserror::Error;
 use validator::Validate;
 
@@ -87,25 +86,19 @@ impl IntoResponse for CustomError {
 }
 
 pub trait ResultExt<T> {
-    fn on_constraint(
-        self,
-        name: &str,
-        f: impl FnOnce(Box<dyn DatabaseError>) -> CustomError,
-    ) -> Result<T, CustomError>;
+    fn on_constraint(self, name: &'static str, err_msg: &'static str) -> Result<T, CustomError>;
 }
 
 impl<T, E> ResultExt<T> for Result<T, E>
 where
     E: Into<CustomError>,
 {
-    fn on_constraint(
-        self,
-        name: &str,
-        map_err: impl FnOnce(Box<dyn DatabaseError>) -> CustomError,
-    ) -> Result<T, CustomError> {
+    fn on_constraint(self, name: &'static str, err_msg: &'static str) -> Result<T, CustomError> {
         self.map_err(|e| match e.into() {
             CustomError::Sqlx(sqlx::Error::Database(dbe)) if dbe.constraint() == Some(name) => {
-                map_err(dbe)
+                let mut errors = validator::ValidationErrors::new();
+                errors.add(name, validator::ValidationError::new(err_msg));
+                CustomError::ValidationError(errors)
             }
             e => e,
         })
