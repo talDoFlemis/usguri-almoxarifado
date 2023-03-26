@@ -13,13 +13,6 @@ pub struct UserEntity {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct ProfileEntity {
-    pub id: i32,
-    pub name: String,
-    pub email: String,
-}
-
-#[derive(Serialize, Deserialize)]
 pub struct UserBody {
     pub id: i32,
     pub name: String,
