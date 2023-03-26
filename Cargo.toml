@@ -7,7 +7,7 @@ edition = "2021"
 
 [dependencies]
 # Core shit
-axum = { version = "0.6.11", features = ["ws", "tower-log", "json"] }
+axum = { version = "0.6.11", features = ["ws", "tower-log", "json", "headers"] }
 tokio = { version = "1.26.0", features = ["full"] }
 sqlx = { version = "0.6.2", features = ["runtime-tokio-native-tls", "chrono", "postgres" ] }
 
