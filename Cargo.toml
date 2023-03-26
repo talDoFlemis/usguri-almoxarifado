@@ -29,6 +29,7 @@ futures = "0.3.27"
 validator = { version = "0.16.0", features = ["derive"] }
 argon2 = "0.5.0"
 rand = "0.8.5"
+jsonwebtoken = "8.3.0"
 
 [profile.dev.package.sqlx-macros]
 opt-level = 3
