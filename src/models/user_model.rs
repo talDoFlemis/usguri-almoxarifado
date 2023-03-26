@@ -27,6 +27,13 @@ pub struct UserBody {
     pub token: String,
 }
 
+#[derive(Serialize, Deserialize, Validate)]
+#[allow(unused_mut)]
+pub struct LoginUserDTO {
+    pub email: String,
+    pub password: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateUserDTO {
     #[validate(length(min = 1, message = "Can not be empty"))]

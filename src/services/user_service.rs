@@ -1,5 +1,5 @@
 use crate::{
-    models::user_model::{CreateUserDTO, ProfileEntity, UpdateUserDTO, UserEntity},
+    models::user_model::{CreateUserDTO, LoginUserDTO, ProfileEntity, UpdateUserDTO, UserEntity},
     validation::ResultExt,
 };
 use crate::{validation::CustomError, Result};
@@ -32,6 +32,28 @@ pub async fn create_user(
 
     Ok(ProfileEntity {
         id: user_id,
+        name: user.name,
+        email: user.email,
+    })
+}
+
+pub async fn login_user(
+    req: LoginUserDTO,
+    state: &sqlx::Pool<sqlx::Postgres>,
+) -> Result<ProfileEntity> {
+    let user = sqlx::query_as!(
+        UserEntity,
+        "SELECT * FROM users WHERE email = $1",
+        req.email
+    )
+    .fetch_optional(state)
+    .await?
+    .ok_or(CustomError::Unauthorized)?;
+
+    verify_password(req.password, user.password).await?;
+
+    Ok(ProfileEntity {
+        id: user.id,
         name: user.name,
         email: user.email,
     })

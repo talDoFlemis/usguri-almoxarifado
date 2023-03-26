@@ -1,13 +1,10 @@
 use crate::{
     authorization::Claims,
-    models::user_model::{CreateUserDTO, UserBody, UserEntity},
+    models::user_model::{CreateUserDTO, LoginUserDTO, UserBody, UserEntity},
     validation::ValidatedRequest,
     AppState,
 };
-use crate::{
-    models::user_model::{ProfileEntity, UpdateUserDTO},
-    services::user_service,
-};
+use crate::{models::user_model::UpdateUserDTO, services::user_service};
 use crate::{validation::CustomError, Result};
 use axum::{
     extract::Path,
@@ -42,6 +39,20 @@ async fn create_user(
     }))
 }
 
+async fn login_user(
+    state: Extension<AppState>,
+    ValidatedRequest(data): ValidatedRequest<LoginUserDTO>,
+) -> Result<Json<UserBody>> {
+    let user = user_service::login_user(data, &state.db).await?;
+
+    Ok(Json(UserBody {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        token: Claims::new(user.id).to_jwt(&state)?,
+    }))
+}
+
 async fn update_user(
     state: Extension<AppState>,
     Path(id): Path<i32>,
@@ -63,6 +74,7 @@ fn real_route() -> Router {
         .route("/all", get(get_all))
         .route("/:id", get(get_user))
         .route("/create", post(create_user))
+        .route("/login", post(login_user))
         .route("/update/:id", patch(update_user))
         .route("/delete/:id", delete(delete_user))
 }
