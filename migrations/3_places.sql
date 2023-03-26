@@ -1,0 +1,13 @@
+CREATE TABLE places (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL UNIQUE,
+  description VARCHAR(255),
+  image VARCHAR(255),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TRIGGER update_me_daddy
+BEFORE UPDATE ON places
+FOR EACH ROW
+EXECUTE PROCEDURE trigger_set_timestamp();

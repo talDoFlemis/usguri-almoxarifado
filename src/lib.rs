@@ -43,4 +43,5 @@ fn api_router() -> Router {
     Router::new()
         .merge(controllers::user_controller::route())
         .merge(controllers::profile_controller::route())
+        .merge(controllers::place_controller::route())
 }
