@@ -1,18 +1,14 @@
 use crate::{
-    models::user_model::{CreateUserDTO, LoginUserDTO, ProfileEntity, UpdateUserDTO, UserEntity},
+    models::{
+        profile_model::ProfileEntity,
+        user_model::{CreateUserDTO, LoginUserDTO, UpdateUserDTO, UserEntity},
+    },
     validation::ResultExt,
 };
 use crate::{validation::CustomError, Result};
 use anyhow::Context;
 use argon2::{password_hash::SaltString, PasswordHasher, PasswordVerifier};
 use argon2::{Argon2, PasswordHash};
-
-pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<UserEntity>> {
-    let users = sqlx::query_as!(UserEntity, "SELECT * FROM users")
-        .fetch_all(state)
-        .await?;
-    Ok(users)
-}
 
 pub async fn create_user(
     user: CreateUserDTO,
@@ -57,13 +53,6 @@ pub async fn login_user(
         name: user.name,
         email: user.email,
     })
-}
-
-pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<Option<UserEntity>> {
-    let user = sqlx::query_as!(UserEntity, "SELECT * from users WHERE id = $1", id)
-        .fetch_optional(state)
-        .await?;
-    Ok(user)
 }
 
 pub async fn update_user(
