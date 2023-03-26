@@ -40,5 +40,7 @@ pub async fn server(db: PgPool, cfg: Config) -> anyhow::Result<()> {
 }
 
 fn api_router() -> Router {
-    Router::new().merge(controllers::user_controller::route())
+    Router::new()
+        .merge(controllers::user_controller::route())
+        .merge(controllers::profile_controller::route())
 }
