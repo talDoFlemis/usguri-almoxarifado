@@ -1,35 +1,44 @@
 use crate::{
-    models::user_model::{CreateUserDTO, UpdateUserDTO, User},
+    models::user_model::{CreateUserDTO, ProfileEntity, UpdateUserDTO, UserEntity},
     validation::ResultExt,
 };
 use crate::{validation::CustomError, Result};
 use anyhow::Context;
 use argon2::{password_hash::SaltString, PasswordHasher, PasswordVerifier};
 use argon2::{Argon2, PasswordHash};
-use chrono::DateTime;
 
-pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<User>> {
-    let users = sqlx::query_as!(User, "SELECT * FROM users")
+pub async fn get_all_users(state: &sqlx::Pool<sqlx::Postgres>) -> Result<Vec<UserEntity>> {
+    let users = sqlx::query_as!(UserEntity, "SELECT * FROM users")
         .fetch_all(state)
         .await?;
     Ok(users)
 }
 
-pub async fn create_user(user: CreateUserDTO, state: &sqlx::Pool<sqlx::Postgres>) -> Result<User> {
-    let user = sqlx::query_as!(
-        User,
-        "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING *",
+pub async fn create_user(
+    user: CreateUserDTO,
+    state: &sqlx::Pool<sqlx::Postgres>,
+) -> Result<ProfileEntity> {
+    let pass_hash = hash_password(user.password).await?;
+
+    let user_id = sqlx::query_scalar!(
+        "INSERT INTO users (name, email, password) VALUES ($1, $2, $3) RETURNING id",
         user.name,
         user.email,
-        user.password
+        pass_hash
     )
     .fetch_one(state)
-    .await?;
-    Ok(user)
+    .await
+    .on_constraint("users_email_key", "email already taken")?;
+
+    Ok(ProfileEntity {
+        id: user_id,
+        name: user.name,
+        email: user.email,
+    })
 }
 
-pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<Option<User>> {
-    let user = sqlx::query_as!(User, "SELECT * from users WHERE id = $1", id)
+pub async fn get_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<Option<UserEntity>> {
+    let user = sqlx::query_as!(UserEntity, "SELECT * from users WHERE id = $1", id)
         .fetch_optional(state)
         .await?;
     Ok(user)
@@ -39,9 +48,9 @@ pub async fn update_user(
     id: i32,
     data: UpdateUserDTO,
     state: &sqlx::Pool<sqlx::Postgres>,
-) -> Result<User> {
+) -> Result<UserEntity> {
     let user = sqlx::query_as!(
-        User,
+        UserEntity,
         "UPDATE users SET name = $2, email = $3 WHERE id = $1 RETURNING *",
         id,
         data.name,
@@ -59,6 +68,7 @@ pub async fn delete_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<
 
     Ok(())
 }
+
 async fn hash_password(password: String) -> Result<String> {
     Ok(tokio::task::spawn_blocking(move || -> Result<String> {
         let salt = SaltString::generate(rand::thread_rng());

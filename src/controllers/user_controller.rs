@@ -1,7 +1,10 @@
-use crate::{models::user_model::UpdateUserDTO, services::user_service};
 use crate::{
-    models::user_model::{CreateUserDTO, User},
+    models::user_model::{CreateUserDTO, UserEntity},
     validation::ValidatedRequest,
+};
+use crate::{
+    models::user_model::{ProfileEntity, UpdateUserDTO},
+    services::user_service,
 };
 use crate::{validation::CustomError, Result};
 use axum::{
@@ -12,12 +15,12 @@ use axum::{
 };
 use sqlx::PgPool;
 
-async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<User>>> {
+async fn get_all(state: Extension<PgPool>) -> Result<Json<Vec<UserEntity>>> {
     let users = user_service::get_all_users(&state.0).await?;
     Ok(Json(users))
 }
 
-async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<User>> {
+async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<UserEntity>> {
     let user = user_service::get_user(id, &state.0).await?;
     match user {
         Some(user) => Ok(Json(user)),
@@ -28,7 +31,7 @@ async fn get_user(state: Extension<PgPool>, Path(id): Path<i32>) -> Result<Json<
 async fn create_user(
     state: Extension<PgPool>,
     ValidatedRequest(data): ValidatedRequest<CreateUserDTO>,
-) -> Result<Json<User>> {
+) -> Result<Json<ProfileEntity>> {
     let user = user_service::create_user(data, &state.0).await?;
     Ok(Json(user))
 }
@@ -37,7 +40,7 @@ async fn update_user(
     state: Extension<PgPool>,
     Path(id): Path<i32>,
     ValidatedRequest(data): ValidatedRequest<UpdateUserDTO>,
-) -> Result<Json<User>> {
+) -> Result<Json<UserEntity>> {
     let user = user_service::update_user(id, data, &state.0).await?;
     Ok(Json(user))
 }

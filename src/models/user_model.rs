@@ -3,13 +3,20 @@ use serde::{Deserialize, Serialize};
 use validator::Validate;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct User {
+pub struct UserEntity {
     pub id: i32,
     pub name: String,
     pub email: String,
     pub password: String,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct ProfileEntity {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
 }
 
 #[derive(Debug, Serialize, Deserialize, Validate)]
