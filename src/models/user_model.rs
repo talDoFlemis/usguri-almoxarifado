@@ -19,6 +19,14 @@ pub struct ProfileEntity {
     pub email: String,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct UserBody {
+    pub id: i32,
+    pub name: String,
+    pub email: String,
+    pub token: String,
+}
+
 #[derive(Debug, Serialize, Deserialize, Validate)]
 pub struct CreateUserDTO {
     #[validate(length(min = 1, message = "Can not be empty"))]

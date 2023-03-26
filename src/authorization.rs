@@ -11,20 +11,20 @@ use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation}
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Claims {
+pub struct Claims {
     sub: i32,
     exp: usize,
 }
 
 impl Claims {
-    fn new(sub: i32) -> Self {
+    pub fn new(sub: i32) -> Self {
         Self {
             sub,
             exp: Utc::now().timestamp() as usize + Duration::weeks(2).num_seconds() as usize,
         }
     }
 
-    pub fn to_jwt(&self, ctx: Extension<AppState>) -> Result<String> {
+    pub fn to_jwt(&self, ctx: &Extension<AppState>) -> Result<String> {
         let key = EncodingKey::from_secret(ctx.config.hmac_key.as_bytes());
         let token = encode(&Header::default(), self, &key).map_err(|e| {
             tracing::error!("Could not encode JWT: {}", e);

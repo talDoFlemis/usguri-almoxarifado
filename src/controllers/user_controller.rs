@@ -1,5 +1,6 @@
 use crate::{
-    models::user_model::{CreateUserDTO, UserEntity},
+    authorization::Claims,
+    models::user_model::{CreateUserDTO, UserBody, UserEntity},
     validation::ValidatedRequest,
     AppState,
 };
@@ -31,9 +32,14 @@ async fn get_user(state: Extension<AppState>, Path(id): Path<i32>) -> Result<Jso
 async fn create_user(
     state: Extension<AppState>,
     ValidatedRequest(data): ValidatedRequest<CreateUserDTO>,
-) -> Result<Json<ProfileEntity>> {
+) -> Result<Json<UserBody>> {
     let user = user_service::create_user(data, &state.db).await?;
-    Ok(Json(user))
+    Ok(Json(UserBody {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        token: Claims::new(user.id).to_jwt(&state)?,
+    }))
 }
 
 async fn update_user(
@@ -42,6 +48,7 @@ async fn update_user(
     ValidatedRequest(data): ValidatedRequest<UpdateUserDTO>,
 ) -> Result<Json<UserEntity>> {
     let user = user_service::update_user(id, data, &state.db).await?;
+
     Ok(Json(user))
 }
 

@@ -16,7 +16,7 @@ mod validation;
 pub type Result<T, E = CustomError> = std::result::Result<T, E>;
 
 #[derive(Clone)]
-struct AppState {
+pub struct AppState {
     db: PgPool,
     config: Arc<Config>,
 }

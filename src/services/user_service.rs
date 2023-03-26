@@ -70,7 +70,7 @@ pub async fn delete_user(id: i32, state: &sqlx::Pool<sqlx::Postgres>) -> Result<
 }
 
 async fn hash_password(password: String) -> Result<String> {
-    Ok(tokio::task::spawn_blocking(move || -> Result<String> {
+    tokio::task::spawn_blocking(move || -> Result<String> {
         let salt = SaltString::generate(rand::thread_rng());
         Ok(Argon2::default()
             .hash_password(password.as_bytes(), &salt)
@@ -78,20 +78,20 @@ async fn hash_password(password: String) -> Result<String> {
             .to_string())
     })
     .await
-    .context("Panic in generating password hash")??)
+    .context("Panic in generating password hash")?
 }
 
 async fn verify_password(password: String, hash: String) -> Result<()> {
-    Ok(tokio::task::spawn_blocking(move || -> Result<()> {
+    tokio::task::spawn_blocking(move || -> Result<()> {
         let parsed_hash = PasswordHash::new(&hash)
             .map_err(|e| anyhow::anyhow!("Could not parse password hash: {}", e))?;
-        Ok(Argon2::default()
+        Argon2::default()
             .verify_password(password.as_bytes(), &parsed_hash)
             .map_err(|e| match e {
                 argon2::password_hash::Error::Password => CustomError::Unauthorized,
                 _ => anyhow::anyhow!("Could not verify password: {}", e).into(),
-            })?)
+            })
     })
     .await
-    .context("Panic in verifying password")??)
+    .context("Panic in verifying password")?
 }
